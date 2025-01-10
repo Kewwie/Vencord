@@ -117,7 +117,6 @@ export default definePlugin({
 
             if (!timeData || timeData.getTime() > nowAndAmount) {
                 storage.set(channelId, new Date(nowAndAmount));
-                console.log(storage);
             }
         });
     },
