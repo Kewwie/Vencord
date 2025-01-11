@@ -37,6 +37,22 @@ interface NotificationOptions {
     };
 }
 
+enum ChannelTypes {
+    GUILD_TEXT = 0,
+    DM = 1,
+    GUILD_VOICE = 2,
+    GROUP_DM = 3,
+    GUILD_CATEGORY = 4,
+    GUILD_ANNOUNCEMENT = 5,
+    ANNOUNCEMENT_THREAD = 10,
+    PUBLIC_THREAD = 11,
+    PRIVATE_THREAD = 12,
+    GUILD_STAGE_VOICE = 13,
+    GUILD_DIRECTORY = 14,
+    GUILD_FORUM = 15,
+    GUILD_MEDIA = 16,
+}
+
 const settings = definePluginSettings({
     keywords: {
         type: OptionType.STRING,
@@ -52,21 +68,6 @@ const settings = definePluginSettings({
             { label: "In-App & Desktop Notifications", value: "both", default: true },
         ],
     },
-    ignoredUsers: {
-        type: OptionType.STRING,
-        description: "Comma-separated list of user IDs to ignore",
-        default: ""
-    },
-    allowed: {
-        type: OptionType.SELECT,
-        description: "Only watch for keywords in the specified in the allowed lists",
-        options: [
-            { label: "None", value: "none", default: true },
-            { label: "Guilds", value: "guild" },
-            { label: "Channels", value: "channel" },
-            { label: "Guilds & Channels", value: "both" },
-        ],
-    },
     allowedGuilds: {
         type: OptionType.STRING,
         description: "Comma-separated list of guild IDs where to watch for the keywords",
@@ -77,16 +78,6 @@ const settings = definePluginSettings({
         description: "Comma-separated list of channel IDs where to watch for the keywords",
         default: ""
     },
-    ignored: {
-        type: OptionType.SELECT,
-        description: "Ignore keywords in the specified in the ignored lists",
-        options: [
-            { label: "None", value: "none", default: true },
-            { label: "Guilds", value: "guild" },
-            { label: "Channels", value: "channel" },
-            { label: "Guilds & Channels", value: "both" },
-        ],
-    },
     ignoredGuilds: {
         type: OptionType.STRING,
         description: "Comma-separated list of guild IDs where to not watch for the keywords",
@@ -96,6 +87,26 @@ const settings = definePluginSettings({
         type: OptionType.STRING,
         description: "Comma-separated list of channel IDs where to not watch for the keywords",
         default: ""
+    },
+    ignoredUsers: {
+        type: OptionType.STRING,
+        description: "Comma-separated list of user IDs to ignore",
+        default: ""
+    },
+    ignoreBots: {
+        type: OptionType.BOOLEAN,
+        description: "Ignore messages from bots",
+        default: false
+    },
+    ignoreDirectMessages: {
+        type: OptionType.BOOLEAN,
+        description: "Ignore direct messages (DMs)",
+        default: true
+    },
+    ignoreGroupMessages: {
+        type: OptionType.BOOLEAN,
+        description: "Ignore group messages (Group DMs)",
+        default: true
     }
 });
 
@@ -112,7 +123,6 @@ function Notify(options: NotificationOptions) {
             "Go To Message",
             () => {
                 NavigationRouter.transitionTo(`/channels/${guildId}/${channelId}/${message.id}`);
-                Notices.popNotice();
             }
         );
     }
@@ -130,7 +140,6 @@ function Notify(options: NotificationOptions) {
 }
 
 function onMessageCreate(ctx: MessageContext) {
-    if (!ctx.guildId) return;
     if (ctx.isPushNotification) return;
     if (ctx.message.author.id === UserStore.getCurrentUser().id) return;
     if (ctx.channelId === getCurrentChannel()?.id) return;
@@ -139,21 +148,19 @@ function onMessageCreate(ctx: MessageContext) {
     var allowedChannels = settings.store.allowedChannels.split(",").map(id => id.trim());
     var ignoredGuilds = settings.store.ignoredGuilds.split(",").map(id => id.trim());
     var ignoredChannels = settings.store.ignoredChannels.split(",").map(id => id.trim());
-
     var ignoredUsers = settings.store.ignoredUsers.split(",").map(id => id.trim());
+
+    if (!allowedGuilds.includes(ctx.guildId)) return;
+    if (!allowedChannels.includes(ctx.channelId)) return;
+
+    if (ignoredGuilds.includes(ctx.guildId)) return;
+    if (ignoredChannels.includes(ctx.channelId)) return;
     if (ignoredUsers.includes(ctx.message.author.id)) return;
 
-    if (settings.store.allowed !== "none") {
-        if (settings.store.allowed === "guild" && !allowedGuilds.includes(ctx.guildId)) return;
-        if (settings.store.allowed === "channel" && !allowedChannels.includes(ctx.channelId)) return;
-        if (settings.store.allowed === "both" && !allowedGuilds.includes(ctx.guildId) && !allowedChannels.includes(ctx.channelId)) return;
-    }
+    if (settings.store.ignoreBots && ctx.message.author.bot) return;
 
-    if (settings.store.ignored !== "none") {
-        if (settings.store.ignored === "guild" && ignoredGuilds.includes(ctx.guildId)) return;
-        if (settings.store.ignored === "channel" && ignoredChannels.includes(ctx.channelId)) return;
-        if (settings.store.ignored === "both" && ignoredGuilds.includes(ctx.guildId) && ignoredChannels.includes(ctx.channelId)) return;
-    }
+    if (settings.store.ignoreDirectMessages && ChannelStore.getChannel(ctx.channelId)?.type === ChannelTypes.DM) return;
+    if (settings.store.ignoreGroupMessages && ChannelStore.getChannel(ctx.channelId)?.type === ChannelTypes.GROUP_DM) return;
 
     var keywords = settings.store.keywords.split(",").map(keyword => keyword.trim().toLowerCase());
     for (var keyword of keywords) {
