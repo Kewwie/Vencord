@@ -49,7 +49,7 @@ const settings = definePluginSettings({
         options: [
             { label: "In-App Notice", value: "inApp" },
             { label: "Desktop Notification", value: "desktop" },
-            { label: "Both", value: "both", default: true },
+            { label: "In-App & Desktop Notifications", value: "both", default: true },
         ],
     },
     whitelists: {
@@ -59,7 +59,7 @@ const settings = definePluginSettings({
             { label: "None", value: "none", default: true },
             { label: "Guilds Whitelist", value: "guild" },
             { label: "Channels Whitelist", value: "channel" },
-            { label: "Both Whitelists", value: "both" },
+            { label: "Guilds & Channels Whitelists", value: "both" },
         ],
     },
     guildWhitelist: {
@@ -79,7 +79,7 @@ const settings = definePluginSettings({
             { label: "None", value: "none", default: true },
             { label: "Guilds Blacklist", value: "guild" },
             { label: "Channels Blacklist", value: "channel" },
-            { label: "Both Blacklists", value: "both" },
+            { label: "Guilds & Channels Blacklists", value: "both" },
         ],
     },
     guildBlacklist: {
