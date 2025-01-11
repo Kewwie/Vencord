@@ -10,7 +10,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { getCurrentChannel } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
-import { NavigationRouter, UserStore } from "@webpack/common";
+import { ChannelStore, GuildStore, NavigationRouter, UserStore } from "@webpack/common";
 import { Message } from "discord-types/general";
 
 interface MessageContext {
@@ -52,42 +52,47 @@ const settings = definePluginSettings({
             { label: "In-App & Desktop Notifications", value: "both", default: true },
         ],
     },
-    whitelists: {
+    ignoredUsers: {
+        type: OptionType.STRING,
+        description: "Comma-separated list of user IDs to ignore",
+        default: ""
+    },
+    allowed: {
         type: OptionType.SELECT,
-        description: "Only watch for keywords in the specified whitelists",
+        description: "Only watch for keywords in the specified in the allowed lists",
         options: [
             { label: "None", value: "none", default: true },
-            { label: "Guilds Whitelist", value: "guild" },
-            { label: "Channels Whitelist", value: "channel" },
-            { label: "Guilds & Channels Whitelists", value: "both" },
+            { label: "Guilds", value: "guild" },
+            { label: "Channels", value: "channel" },
+            { label: "Guilds & Channels", value: "both" },
         ],
     },
-    guildWhitelist: {
+    allowedGuilds: {
         type: OptionType.STRING,
         description: "Comma-separated list of guild IDs where to watch for the keywords",
         default: ""
     },
-    channelWhitelist: {
+    allowedChannels: {
         type: OptionType.STRING,
         description: "Comma-separated list of channel IDs where to watch for the keywords",
         default: ""
     },
-    blacklists: {
+    ignored: {
         type: OptionType.SELECT,
-        description: "Don't watch for keywords from the specified blacklists",
+        description: "Ignore keywords in the specified in the ignored lists",
         options: [
             { label: "None", value: "none", default: true },
-            { label: "Guilds Blacklist", value: "guild" },
-            { label: "Channels Blacklist", value: "channel" },
-            { label: "Guilds & Channels Blacklists", value: "both" },
+            { label: "Guilds", value: "guild" },
+            { label: "Channels", value: "channel" },
+            { label: "Guilds & Channels", value: "both" },
         ],
     },
-    guildBlacklist: {
+    ignoredGuilds: {
         type: OptionType.STRING,
         description: "Comma-separated list of guild IDs where to not watch for the keywords",
         default: ""
     },
-    channelBlackklist: {
+    ignoredChannels: {
         type: OptionType.STRING,
         description: "Comma-separated list of channel IDs where to not watch for the keywords",
         default: ""
@@ -103,7 +108,7 @@ function Notify(options: NotificationOptions) {
 
     if (settings.store.notifications === "inApp" || settings.store.notifications === "both") {
         Notices.showNotice(
-            `@${author.username} said something that included the keyword "${keyword}"`,
+            `@${author.username} mentioned "${keyword}" in ${GuildStore.getGuild(guildId)?.name}`,
             "Go To Message",
             () => {
                 NavigationRouter.transitionTo(`/channels/${guildId}/${channelId}/${message.id}`);
@@ -114,8 +119,8 @@ function Notify(options: NotificationOptions) {
 
     if (settings.store.notifications === "desktop" || settings.store.notifications === "both") {
         showNotification({
-            title: "Keyword Notifier",
-            body: `@${author.username}: ${message.content}`,
+            title: `${author.username} (#${ChannelStore.getChannel(channelId)?.name}, ${GuildStore.getGuild(guildId)?.name})`,
+            body: `${message.content}`,
             icon: author.avatarUrl,
             onClick: () => {
                 NavigationRouter.transitionTo(`/channels/${guildId}/${channelId}/${message.id}`);
@@ -130,21 +135,24 @@ function onMessageCreate(ctx: MessageContext) {
     if (ctx.message.author.id === UserStore.getCurrentUser().id) return;
     if (ctx.channelId === getCurrentChannel()?.id) return;
 
-    var allowedGuilds = settings.store.guildWhitelist.split(",").map(id => id.trim());
-    var allowedChannels = settings.store.channelWhitelist.split(",").map(id => id.trim());
-    var blockedGuilds = settings.store.guildBlacklist.split(",").map(id => id.trim());
-    var blockedChannels = settings.store.channelBlackklist.split(",").map(id => id.trim());
+    var allowedGuilds = settings.store.allowedChannels.split(",").map(id => id.trim());
+    var allowedChannels = settings.store.allowedChannels.split(",").map(id => id.trim());
+    var ignoredGuilds = settings.store.ignoredGuilds.split(",").map(id => id.trim());
+    var ignoredChannels = settings.store.ignoredChannels.split(",").map(id => id.trim());
 
-    if (settings.store.whitelists !== "none") {
-        if (settings.store.whitelists === "guild" && !allowedGuilds.includes(ctx.guildId)) return;
-        if (settings.store.whitelists === "channel" && !allowedChannels.includes(ctx.channelId)) return;
-        if (settings.store.whitelists === "both" && !allowedGuilds.includes(ctx.guildId) && !allowedChannels.includes(ctx.channelId)) return;
+    var ignoredUsers = settings.store.ignoredUsers.split(",").map(id => id.trim());
+    if (ignoredUsers.includes(ctx.message.author.id)) return;
+
+    if (settings.store.allowed !== "none") {
+        if (settings.store.allowed === "guild" && !allowedGuilds.includes(ctx.guildId)) return;
+        if (settings.store.allowed === "channel" && !allowedChannels.includes(ctx.channelId)) return;
+        if (settings.store.allowed === "both" && !allowedGuilds.includes(ctx.guildId) && !allowedChannels.includes(ctx.channelId)) return;
     }
 
-    if (settings.store.blacklists !== "none") {
-        if (settings.store.blacklists === "guild" && blockedGuilds.includes(ctx.guildId)) return;
-        if (settings.store.blacklists === "channel" && blockedChannels.includes(ctx.channelId)) return;
-        if (settings.store.blacklists === "both" && blockedGuilds.includes(ctx.guildId) && blockedChannels.includes(ctx.channelId)) return;
+    if (settings.store.ignored !== "none") {
+        if (settings.store.ignored === "guild" && ignoredGuilds.includes(ctx.guildId)) return;
+        if (settings.store.ignored === "channel" && ignoredChannels.includes(ctx.channelId)) return;
+        if (settings.store.ignored === "both" && ignoredGuilds.includes(ctx.guildId) && ignoredChannels.includes(ctx.channelId)) return;
     }
 
     var keywords = settings.store.keywords.split(",").map(keyword => keyword.trim().toLowerCase());
