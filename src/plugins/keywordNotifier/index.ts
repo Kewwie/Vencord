@@ -119,18 +119,17 @@ function onMessageCreate(ctx: MessageContext) {
     if (ctx.message.author.id === UserStore.getCurrentUser().id) return;
     if (ctx.channelId === getCurrentChannel()?.id) return;
 
-    var allowedGuilds = settings.store.allowedChannels.split(",").map(id => id.trim());
-    var allowedChannels = settings.store.allowedChannels.split(",").map(id => id.trim());
-    var ignoredGuilds = settings.store.ignoredGuilds.split(",").map(id => id.trim());
-    var ignoredChannels = settings.store.ignoredChannels.split(",").map(id => id.trim());
-    var ignoredUsers = settings.store.ignoredUsers.split(",").map(id => id.trim());
+    var allowedGuilds = settings.store.allowedGuilds.length > 0 ? settings.store.allowedGuilds.split(",").map(id => id.trim()) : [];
+    var allowedChannels = settings.store.allowedChannels.length > 0 ? settings.store.allowedChannels.split(",").map(id => id.trim()) : [];
+    var ignoredGuilds = settings.store.ignoredGuilds.length > 0 ? settings.store.ignoredGuilds.split(",").map(id => id.trim()) : [];
+    var ignoredChannels = settings.store.ignoredChannels.length > 0 ? settings.store.ignoredChannels.split(",").map(id => id.trim()) : [];
+    var ignoredUsers = settings.store.ignoredUsers.length > 0 ? settings.store.ignoredUsers.split(",").map(id => id.trim()) : [];
 
-    if (!allowedGuilds.includes(ctx.guildId)) return;
-    if (!allowedChannels.includes(ctx.channelId)) return;
+    if ((allowedGuilds.length > 0 && !allowedGuilds.includes(ctx.guildId)) && (allowedChannels.length > 0 && !allowedChannels.includes(ctx.channelId))) return console.log("not allowed");
 
-    if (ignoredGuilds.includes(ctx.guildId)) return;
-    if (ignoredChannels.includes(ctx.channelId)) return;
-    if (ignoredUsers.includes(ctx.message.author.id)) return;
+    if (ignoredGuilds.length > 0 && ignoredGuilds.includes(ctx.guildId)) return;
+    if (ignoredChannels.length > 0 && ignoredChannels.includes(ctx.channelId)) return;
+    if (ignoredUsers.length > 0 && ignoredUsers.includes(ctx.message.author.id)) return;
 
     if (settings.store.ignoreBots && ctx.message.author.bot) return;
 
