@@ -26,7 +26,9 @@ interface NotificationOptions {
     author: {
         id: string;
         username: string;
+        discriminator: string;
         avatarUrl: string;
+        bot: boolean;
     };
     keyword: string;
     guildId: string;
@@ -84,6 +86,10 @@ const settings = definePluginSettings({
     }
 });
 
+function getUserTag(username: string, discriminator: string, bot: boolean) {
+    return `${username}${bot ? `#${discriminator}` : ""}`;
+}
+
 function getUserAvatarUrl(userId: string, avatar: string) {
     return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`;
 }
@@ -93,7 +99,7 @@ function Notify(options: NotificationOptions) {
 
     if (settings.store.notifications === "inApp" || settings.store.notifications === "both") {
         Notices.showNotice(
-            `@${author.username} mentioned "${keyword}" in ${GuildStore.getGuild(guildId)?.name}`,
+            `@${getUserTag(author.username, author.discriminator, author.bot)} mentioned "${keyword}" in ${GuildStore.getGuild(guildId)?.name}`,
             "Go To Message",
             () => {
                 NavigationRouter.transitionTo(`/channels/${guildId}/${channelId}/${message.id}`);
@@ -140,7 +146,9 @@ function onMessageCreate(ctx: MessageContext) {
                 author: {
                     id: ctx.message.author.id,
                     username: ctx.message.author.username,
-                    avatarUrl: getUserAvatarUrl(ctx.message.author.id, ctx.message.author.avatar)
+                    discriminator: ctx.message.author.discriminator,
+                    avatarUrl: getUserAvatarUrl(ctx.message.author.id, ctx.message.author.avatar),
+                    bot: ctx.message.author.bot
                 },
                 keyword,
                 guildId: ctx.guildId,
