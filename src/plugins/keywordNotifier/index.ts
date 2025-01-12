@@ -114,6 +114,7 @@ function Notify(options: NotificationOptions) {
 }
 
 function onMessageCreate(ctx: MessageContext) {
+    if (!ctx.guildId) return;
     if (ctx.isPushNotification) return;
     if (ctx.message.author.id === UserStore.getCurrentUser().id) return;
     if (ctx.channelId === getCurrentChannel()?.id) return;
