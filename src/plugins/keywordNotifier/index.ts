@@ -37,22 +37,6 @@ interface NotificationOptions {
     };
 }
 
-enum ChannelTypes {
-    GUILD_TEXT = 0,
-    DM = 1,
-    GUILD_VOICE = 2,
-    GROUP_DM = 3,
-    GUILD_CATEGORY = 4,
-    GUILD_ANNOUNCEMENT = 5,
-    ANNOUNCEMENT_THREAD = 10,
-    PUBLIC_THREAD = 11,
-    PRIVATE_THREAD = 12,
-    GUILD_STAGE_VOICE = 13,
-    GUILD_DIRECTORY = 14,
-    GUILD_FORUM = 15,
-    GUILD_MEDIA = 16,
-}
-
 const settings = definePluginSettings({
     keywords: {
         type: OptionType.STRING,
@@ -97,16 +81,6 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Ignore messages from bots",
         default: false
-    },
-    ignoreDirectMessages: {
-        type: OptionType.BOOLEAN,
-        description: "Ignore direct messages (DMs)",
-        default: true
-    },
-    ignoreGroupMessages: {
-        type: OptionType.BOOLEAN,
-        description: "Ignore group messages (Group DMs)",
-        default: true
     }
 });
 
@@ -158,9 +132,6 @@ function onMessageCreate(ctx: MessageContext) {
     if (ignoredUsers.includes(ctx.message.author.id)) return;
 
     if (settings.store.ignoreBots && ctx.message.author.bot) return;
-
-    if (settings.store.ignoreDirectMessages && ChannelStore.getChannel(ctx.channelId)?.type === ChannelTypes.DM) return;
-    if (settings.store.ignoreGroupMessages && ChannelStore.getChannel(ctx.channelId)?.type === ChannelTypes.GROUP_DM) return;
 
     var keywords = settings.store.keywords.split(",").map(keyword => keyword.trim().toLowerCase());
     for (var keyword of keywords) {
