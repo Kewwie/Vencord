@@ -103,6 +103,7 @@ function Notify(options: NotificationOptions) {
             "Go To Message",
             () => {
                 NavigationRouter.transitionTo(`/channels/${guildId}/${channelId}/${message.id}`);
+                Notices.popNotice();
             }
         );
     }
