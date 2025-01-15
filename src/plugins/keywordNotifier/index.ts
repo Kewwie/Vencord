@@ -126,7 +126,6 @@ function Notify(options: NotificationOptions) {
 
 function onMessageCreate(ctx: MessageContext) {
     if (!ctx.guildId) return;
-    if (ctx.isPushNotification) return;
 
     var currentUser = UserStore.getCurrentUser();
     var currentChannel = getCurrentChannel();
